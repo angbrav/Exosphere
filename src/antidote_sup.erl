@@ -59,6 +59,11 @@ init(_Args) ->
                             permanent, 5000, supervisor,
                             [clockSI_interactive_tx_coord_sup]},
 
+    ExternalTxCoordSup =  { external_tx_coord_sup,
+                            {external_tx_coord_sup, start_link, []},
+                            permanent, 5000, supervisor,
+                            [external_tx_coord_sup]},
+
     ClockSIReadSup = {clocksi_readitem_sup,
                       {clocksi_readitem_sup, start_link, []},
                       permanent, 5000, supervisor,
@@ -122,6 +127,7 @@ init(_Args) ->
        LoggingMaster,
        ClockSIMaster,
        ClockSIiTxCoordSup,
+       ExternalTxCoordSup,
        ClockSIReadSup,
        MaterializerMaster,
        ZMQContextManager,
