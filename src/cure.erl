@@ -190,24 +190,41 @@ transform_reads(States, StateOrValue, Objects) ->
 -spec clocksi_istart_tx(snapshot_time() | ignore, txn_properties(), boolean()) ->
                                {ok, txid()} | {error, reason()}.
 clocksi_istart_tx(Clock, Properties, KeepAlive) ->
-    TxPid = case KeepAlive of
-                true ->
-                    whereis(clocksi_interactive_tx_coord_fsm:generate_name(self()));
-                false ->
-                    undefined
-            end,
-    _ = case TxPid of
-            undefined ->
-                {ok, _} = clocksi_interactive_tx_coord_sup:start_fsm([self(), Clock,
-                                                                      Properties, KeepAlive]);
-            TxPid ->
-                ok = gen_fsm:send_event(TxPid, {start_tx, self(), Clock, Properties})
+    R = case antidote:get_txn_property(type_tx, Properties) of
+            external ->
+                {ok, _} = external_tx_coord_sup:start_fsm([self(), Clock, Properties]),
+                receive
+                    {ok, ready} ->
+                        {ok, ready};
+                    Error1 ->
+                        {error, Error1}
+                end;
+            _ ->
+                {ok, ready}  
         end,
-    receive
-        {ok, TxId} ->
-            {ok, TxId};
-        Other ->
-            {error, Other}
+    case R of
+        {ok, ready} ->
+            TxPid = case KeepAlive of
+                        true ->
+                            whereis(clocksi_interactive_tx_coord_fsm:generate_name(self()));
+                        false ->
+                            undefined
+                    end,
+            _ = case TxPid of
+                    undefined ->
+                        {ok, _} = clocksi_interactive_tx_coord_sup:start_fsm([self(), Clock,
+                                                                      Properties, KeepAlive]);
+                    TxPid ->
+                        ok = gen_fsm:send_event(TxPid, {start_tx, self(), Clock, Properties})
+                end,
+            receive
+                {ok, TxId} ->
+                    {ok, TxId};
+                Error2 ->
+                    {error, Error2}
+            end;
+        Error3 ->
+           Error3 
     end.
 
 -spec clocksi_full_icommit(txid()) -> {aborted, txid()} | {ok, {txid(), snapshot_time()}}
