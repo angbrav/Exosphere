@@ -195,7 +195,25 @@ type_check(Updates) ->
 get_default_txn_properties() ->
     [{update_clock, true}].
 
--spec get_txn_property(atom(), txn_properties()) -> atom().
+-spec get_txn_property(atom(), txn_properties()) -> any().
+get_txn_property(error_sync, Properties) ->
+    case lists:keyfind(error_sync, 1, Properties) of
+     false ->
+        %% The default
+        0;
+    {error_sync, Time} ->
+        Time
+    end;
+
+get_txn_property(type_tx, Properties) ->
+    case lists:keyfind(type_tx, 1, Properties) of
+     false ->
+        %% The default
+        internal;
+    {type_tx, Type} ->
+        Type
+    end;
+
 get_txn_property(update_clock, Properties) ->
     case lists:keyfind(update_clock, 1, Properties) of
      false ->
